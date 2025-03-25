@@ -144,3 +144,5 @@ if(FUZZER)
     add_subdirectory(fuzzing)
 
 endif()
+
+add_definitions(-DCLIENT_USE_OPENSSL)
