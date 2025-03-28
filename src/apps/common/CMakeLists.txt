@@ -30,6 +30,11 @@ endif()
 find_package(OpenSSL REQUIRED COMPONENTS Crypto SSL)
 list(APPEND COMMON_LIBS OpenSSL::SSL OpenSSL::Crypto)
 
+if (CLIENT_USE_MBEDTLS)
+    find_package(MbedTLS REQUIRED)
+    list(APPEND COMMON_LIBS MbedTLS::tfpsacrypto)
+endif()
+
 if(MSVC)
 	find_package(pthreads REQUIRED)
 	list(APPEND COMMON_LIBS PThreads4W::PThreads4W)
