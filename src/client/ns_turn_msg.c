@@ -41,7 +41,7 @@
 #error "Missing Crypto Support"
 #endif
 
-#include "ns_turn_utils.h"
+#include "ns_turn_utils.h" // for min
 
 ///////////
 
