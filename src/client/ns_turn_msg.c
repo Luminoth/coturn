@@ -37,7 +37,13 @@
 
 ///////////// Security functions implementation from ns_turn_msg.h ///////////
 
+#if defined(CLIENT_USE_OPENSSL)
 #include "ns_turn_openssl.h"
+#elif defined(CLIENT_USE_MBEDTLS)
+#else
+#error "Missing Crypto Support"
+#endif
+
 #include "ns_turn_utils.h"
 
 ///////////
@@ -135,6 +141,7 @@ bool stun_calculate_hmac(const uint8_t *buf, size_t len, const uint8_t *key, siz
   UNUSED_ARG(shatype);
 
   if (shatype == SHATYPE_SHA256) {
+#if defined(CLIENT_USE_OPENSSL)
 #if !defined(OPENSSL_NO_SHA256) && defined(SHA256_DIGEST_LENGTH)
     if (!HMAC(EVP_sha256(), key, (int)keylen, buf, len, hmac, hmac_len)) {
       return false;
@@ -143,7 +150,12 @@ bool stun_calculate_hmac(const uint8_t *buf, size_t len, const uint8_t *key, siz
     fprintf(stderr, "SHA256 is not supported\n");
     return false;
 #endif
+#elif defined(CLIENT_USE_MBEDTLS)
+#else
+#error "Missing Crypto Support"
+#endif
   } else if (shatype == SHATYPE_SHA384) {
+#if defined(CLIENT_USE_OPENSSL)
 #if !defined(OPENSSL_NO_SHA384) && defined(SHA384_DIGEST_LENGTH)
     if (!HMAC(EVP_sha384(), key, (int)keylen, buf, len, hmac, hmac_len)) {
       return false;
@@ -152,7 +164,12 @@ bool stun_calculate_hmac(const uint8_t *buf, size_t len, const uint8_t *key, siz
     fprintf(stderr, "SHA384 is not supported\n");
     return false;
 #endif
+#elif defined(CLIENT_USE_MBEDTLS)
+#else
+#error "Missing Crypto Support"
+#endif
   } else if (shatype == SHATYPE_SHA512) {
+#if defined(CLIENT_USE_OPENSSL)
 #if !defined(OPENSSL_NO_SHA512) && defined(SHA512_DIGEST_LENGTH)
     if (!HMAC(EVP_sha512(), key, (int)keylen, buf, len, hmac, hmac_len)) {
       return false;
@@ -161,8 +178,19 @@ bool stun_calculate_hmac(const uint8_t *buf, size_t len, const uint8_t *key, siz
     fprintf(stderr, "SHA512 is not supported\n");
     return false;
 #endif
-  } else if (!HMAC(EVP_sha1(), key, (int)keylen, buf, len, hmac, hmac_len)) {
-    return false;
+#elif defined(CLIENT_USE_MBEDTLS)
+#else
+#error "Missing Crypto Support"
+#endif
+  } else {
+#if defined(CLIENT_USE_OPENSSL)
+    if (!HMAC(EVP_sha1(), key, (int)keylen, buf, len, hmac, hmac_len)) {
+      return false;
+    }
+#elif defined(CLIENT_USE_MBEDTLS)
+#else
+#error "Missing Crypto Support"
+#endif
   }
 
   return true;
@@ -190,6 +218,7 @@ bool stun_produce_integrity_key_str(const uint8_t *uname, const uint8_t *realm, 
   str[strl] = 0;
 
   if (shatype == SHATYPE_SHA256) {
+#if defined(CLIENT_USE_OPENSSL)
 #if !defined(OPENSSL_NO_SHA256) && defined(SHA256_DIGEST_LENGTH)
     unsigned int keylen = 0;
     EVP_MD_CTX *ctx = EVP_MD_CTX_new();
@@ -202,7 +231,12 @@ bool stun_produce_integrity_key_str(const uint8_t *uname, const uint8_t *realm, 
     fprintf(stderr, "SHA256 is not supported\n");
     ret = false;
 #endif
+#elif defined(CLIENT_USE_MBEDTLS)
+#else
+#error "Missing Crypto Support"
+#endif
   } else if (shatype == SHATYPE_SHA384) {
+#if defined(CLIENT_USE_OPENSSL)
 #if !defined(OPENSSL_NO_SHA384) && defined(SHA384_DIGEST_LENGTH)
     unsigned int keylen = 0;
     EVP_MD_CTX *ctx = EVP_MD_CTX_new();
@@ -215,7 +249,12 @@ bool stun_produce_integrity_key_str(const uint8_t *uname, const uint8_t *realm, 
     fprintf(stderr, "SHA384 is not supported\n");
     ret = false;
 #endif
+#elif defined(CLIENT_USE_MBEDTLS)
+#else
+#error "Missing Crypto Support"
+#endif
   } else if (shatype == SHATYPE_SHA512) {
+#if defined(CLIENT_USE_OPENSSL)
 #if !defined(OPENSSL_NO_SHA512) && defined(SHA512_DIGEST_LENGTH)
     unsigned int keylen = 0;
     EVP_MD_CTX *ctx = EVP_MD_CTX_new();
@@ -228,7 +267,12 @@ bool stun_produce_integrity_key_str(const uint8_t *uname, const uint8_t *realm, 
     fprintf(stderr, "SHA512 is not supported\n");
     ret = false;
 #endif
+#elif defined(CLIENT_USE_MBEDTLS)
+#else
+#error "Missing Crypto Support"
+#endif
   } else {
+#if defined(CLIENT_USE_OPENSSL)
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
     unsigned int keylen = 0;
     EVP_MD_CTX *ctx = EVP_MD_CTX_new();
@@ -253,6 +297,10 @@ bool stun_produce_integrity_key_str(const uint8_t *uname, const uint8_t *realm, 
     EVP_MD_CTX_free(ctx);
 #endif // OPENSSL_VERSION_NUMBER >= 0X30000000L
     ret = true;
+#elif defined(CLIENT_USE_MBEDTLS)
+#else
+#error "Missing Crypto Support"
+#endif
   }
 
   free(str);
@@ -287,6 +335,7 @@ static void generate_enc_password(const char *pwd, char *result, const unsigned 
   result[3 + PWD_SALT_SIZE + PWD_SALT_SIZE] = '$';
   unsigned char *out = (unsigned char *)(result + 3 + PWD_SALT_SIZE + PWD_SALT_SIZE + 1);
   {
+#if defined(CLIENT_USE_OPENSSL)
     EVP_MD_CTX *ctx = EVP_MD_CTX_new();
 #if !defined(OPENSSL_NO_SHA256) && defined(SHA256_DIGEST_LENGTH)
     EVP_DigestInit(ctx, EVP_sha256());
@@ -302,6 +351,10 @@ static void generate_enc_password(const char *pwd, char *result, const unsigned 
       readable_string(hash, out, keylen);
     }
     EVP_MD_CTX_free(ctx);
+#elif defined(CLIENT_USE_MBEDTLS)
+#else
+#error "Missing Crypto Support"
+#endif
   }
 }
 
