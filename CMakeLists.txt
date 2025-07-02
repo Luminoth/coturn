@@ -86,7 +86,16 @@ if(DEFINED TURN_SERVER_BUILD_INFO)
     add_definitions(-DTURN_SERVER_BUILD_INFO=${TURN_SERVER_BUILD_INFO})
 endif()
 
-add_definitions(-DCLIENT_USE_OPENSSL)
+# Select client crypto lib
+SET(CLIENT_USE_MBEDTLS OFF CACHE BOOL "Client lib uses Mbed-TLS instead of OpenSSL")
+if (CLIENT_USE_MBEDTLS)
+    add_definitions(-DCLIENT_USE_MBEDTLS)
+
+    # OAuth not supported with Mbed-TLS
+    add_definitions(-DTURN_NO_OAUTH)
+else()
+    add_definitions(-DCLIENT_USE_OPENSSL)
+endif(CLIENT_USE_MBEDTLS)
 
 IF(MSVC)
     # This option is to enable the /MP switch for Visual Studio 2005 and above compilers
