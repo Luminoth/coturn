@@ -475,7 +475,7 @@ int stun_get_command_message_len_str(const uint8_t *buf, size_t len) {
     return -1;
   }
 
-  return bufLen;
+  return (int)bufLen;
 }
 
 static bool stun_set_command_message_len_str(uint8_t *buf, int len) {
