@@ -415,7 +415,7 @@ static void generate_enc_password(const char *pwd, char *result, const unsigned 
     mbedtls_sha256_init(&ctx);
     mbedtls_sha256_starts(&ctx, 0);
     mbedtls_sha256_update(&ctx, salt, PWD_SALT_SIZE);
-    mbedtls_sha256_update(&ctx, pwd, strlen(pwd));
+    mbedtls_sha256_update(&ctx, (const unsigned char *)pwd, strlen(pwd));
     {
       unsigned char hash[129];
       unsigned int keylen = 0;
