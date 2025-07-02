@@ -43,6 +43,7 @@ set(SOURCE_FILES
 set(HEADER_FILES
     apputils.h
     ns_turn_openssl.h
+    ns_turn_mbedtls.h
     ns_turn_utils.h
     stun_buffer.h
     )

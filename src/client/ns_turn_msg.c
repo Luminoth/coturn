@@ -40,6 +40,7 @@
 #if defined(CLIENT_USE_OPENSSL)
 #include "ns_turn_openssl.h"
 #elif defined(CLIENT_USE_MBEDTLS)
+#include "ns_turn_mbedtls.h"
 #else
 #error "Missing Crypto Support"
 #endif
@@ -109,36 +110,51 @@ int stun_method_str(uint16_t method, char *smethod) {
 
 long turn_random_number(void) {
   long ret = 0;
-  if (!RAND_bytes((unsigned char *)&ret, sizeof(ret)))
+#if defined(CLIENT_USE_OPENSSL)
+  if (RAND_bytes((unsigned char *)&ret, sizeof(ret))) {
+    return ret;
+  }
+#endif
+
 #if defined(WINDOWS)
-    ret = rand();
+  ret = rand();
 #else
-    ret = random();
+  ret = random();
 #endif
   return ret;
 }
 
 static void generate_random_nonce(unsigned char *nonce, size_t sz) {
-  if (!RAND_bytes(nonce, (int)sz)) {
-    for (size_t i = 0; i < sz; ++i) {
-      nonce[i] = (unsigned char)turn_random_number();
-    }
+#if defined(CLIENT_USE_OPENSSL)
+  if (RAND_bytes(nonce, (int)sz)) {
+    return;
+  }
+#endif
+
+  for (size_t i = 0; i < sz; ++i) {
+    nonce[i] = (unsigned char)turn_random_number();
   }
 }
 
 static void turn_random_tid_size(void *id) {
   uint32_t *ar = (uint32_t *)id;
-  if (!RAND_bytes((unsigned char *)ar, 12)) {
-    for (size_t i = 0; i < 3; ++i) {
-      ar[i] = (uint32_t)turn_random_number();
-    }
+#if defined(CLIENT_USE_OPENSSL)
+  if (RAND_bytes((unsigned char *)ar, 12)) {
+    return;
+  }
+#endif
+
+  for (size_t i = 0; i < 3; ++i) {
+    ar[i] = (uint32_t)turn_random_number();
   }
 }
 
 bool stun_calculate_hmac(const uint8_t *buf, size_t len, const uint8_t *key, size_t keylen, uint8_t *hmac,
                          unsigned int *hmac_len, SHATYPE shatype) {
-  ERR_clear_error();
   UNUSED_ARG(shatype);
+#if defined(CLIENT_USE_OPENSSL)
+  ERR_clear_error();
+#endif
 
   if (shatype == SHATYPE_SHA256) {
 #if defined(CLIENT_USE_OPENSSL)
@@ -151,6 +167,9 @@ bool stun_calculate_hmac(const uint8_t *buf, size_t len, const uint8_t *key, siz
     return false;
 #endif
 #elif defined(CLIENT_USE_MBEDTLS)
+    if (mbedtls_sha256(buf, len, hmac, 0)) {
+      return false;
+    }
 #else
 #error "Missing Crypto Support"
 #endif
@@ -165,6 +184,9 @@ bool stun_calculate_hmac(const uint8_t *buf, size_t len, const uint8_t *key, siz
     return false;
 #endif
 #elif defined(CLIENT_USE_MBEDTLS)
+    if (mbedtls_sha512(buf, len, hmac, 1)) {
+      return false;
+    }
 #else
 #error "Missing Crypto Support"
 #endif
@@ -179,6 +201,9 @@ bool stun_calculate_hmac(const uint8_t *buf, size_t len, const uint8_t *key, siz
     return false;
 #endif
 #elif defined(CLIENT_USE_MBEDTLS)
+    if (mbedtls_sha512(buf, len, hmac, 0)) {
+      return false;
+    }
 #else
 #error "Missing Crypto Support"
 #endif
@@ -188,6 +213,9 @@ bool stun_calculate_hmac(const uint8_t *buf, size_t len, const uint8_t *key, siz
       return false;
     }
 #elif defined(CLIENT_USE_MBEDTLS)
+    if (mbedtls_sha1(buf, len, hmac)) {
+      return false;
+    }
 #else
 #error "Missing Crypto Support"
 #endif
@@ -232,6 +260,13 @@ bool stun_produce_integrity_key_str(const uint8_t *uname, const uint8_t *realm, 
     ret = false;
 #endif
 #elif defined(CLIENT_USE_MBEDTLS)
+    mbedtls_sha256_context ctx;
+    mbedtls_sha256_init(&ctx);
+    mbedtls_sha256_starts(&ctx, 0);
+    mbedtls_sha256_update(&ctx, str, strl);
+    mbedtls_sha256_finish(&ctx, key);
+    mbedtls_sha256_free(&ctx);
+    ret = true;
 #else
 #error "Missing Crypto Support"
 #endif
@@ -250,6 +285,13 @@ bool stun_produce_integrity_key_str(const uint8_t *uname, const uint8_t *realm, 
     ret = false;
 #endif
 #elif defined(CLIENT_USE_MBEDTLS)
+    mbedtls_sha512_context ctx;
+    mbedtls_sha512_init(&ctx);
+    mbedtls_sha512_starts(&ctx, 1);
+    mbedtls_sha512_update(&ctx, str, strl);
+    mbedtls_sha512_finish(&ctx, key);
+    mbedtls_sha512_free(&ctx);
+    ret = true;
 #else
 #error "Missing Crypto Support"
 #endif
@@ -268,6 +310,13 @@ bool stun_produce_integrity_key_str(const uint8_t *uname, const uint8_t *realm, 
     ret = false;
 #endif
 #elif defined(CLIENT_USE_MBEDTLS)
+    mbedtls_sha512_context ctx;
+    mbedtls_sha512_init(&ctx);
+    mbedtls_sha512_starts(&ctx, 0);
+    mbedtls_sha512_update(&ctx, str, strl);
+    mbedtls_sha512_finish(&ctx, key);
+    mbedtls_sha512_free(&ctx);
+    ret = true;
 #else
 #error "Missing Crypto Support"
 #endif
@@ -298,6 +347,13 @@ bool stun_produce_integrity_key_str(const uint8_t *uname, const uint8_t *realm, 
 #endif // OPENSSL_VERSION_NUMBER >= 0X30000000L
     ret = true;
 #elif defined(CLIENT_USE_MBEDTLS)
+    mbedtls_md5_context ctx;
+    mbedtls_md5_init(&ctx);
+    mbedtls_md5_starts(&ctx);
+    mbedtls_md5_update(&ctx, str, strl);
+    mbedtls_md5_finish(&ctx, key);
+    mbedtls_md5_free(&ctx);
+    ret = true;
 #else
 #error "Missing Crypto Support"
 #endif
@@ -353,6 +409,18 @@ static void generate_enc_password(const char *pwd, char *result, const unsigned 
     EVP_MD_CTX_free(ctx);
 #elif defined(CLIENT_USE_MBEDTLS)
 #else
+    mbedtls_sha256_context ctx;
+    mbedtls_sha256_init(&ctx);
+    mbedtls_sha256_starts(&ctx, 0);
+    mbedtls_sha256_update(&ctx, salt, PWD_SALT_SIZE);
+    mbedtls_sha256_update(&ctx, pwd, strlen(pwd));
+    {
+      unsigned char hash[129];
+      unsigned int keylen = 0;
+      mbedtls_sha256_finish(&ctx, hash);
+      readable_string(hash, out, keylen);
+    }
+    mbedtls_sha256_free(&ctx);
 #error "Missing Crypto Support"
 #endif
   }
