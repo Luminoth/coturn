@@ -228,8 +228,10 @@ bool stun_produce_integrity_key_str(const uint8_t *uname, const uint8_t *realm, 
                                     SHATYPE shatype) {
   bool ret;
 
-  ERR_clear_error();
   UNUSED_ARG(shatype);
+#if defined(CLIENT_USE_OPENSSL)
+  ERR_clear_error();
+#endif
 
   size_t ulen = strlen((const char *)uname);
   size_t rlen = strlen((const char *)realm);

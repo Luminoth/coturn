@@ -32,6 +32,7 @@
 #define __NST_MBEDTLS_LIB__
 
 #include "mbedtls/md5.h"
+#include "mbedtls/sha1.h"
 #include "mbedtls/sha256.h"
 #include "mbedtls/sha512.h"
 
